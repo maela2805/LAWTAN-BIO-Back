@@ -1,0 +1,240 @@
+package com.lawtan.service.impl;
+
+import com.lawtan.dto.AnimalDTO;
+import com.lawtan.dto.PedigreeDTO;
+import com.lawtan.entity.Animal;
+import com.lawtan.entity.Pedigree;
+import com.lawtan.model.AnimalCategory;
+import com.lawtan.model.AnimalStatus;
+import com.lawtan.repository.AnimalRepository;
+import com.lawtan.repository.PedigreeRepository;
+import com.lawtan.service.AnimalService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AnimalServiceImpl implements AnimalService {
+
+    private final AnimalRepository animalRepository;
+    private final PedigreeRepository pedigreeRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnimalDTO> getAllAnimals() {
+        return animalRepository.findAllWithPedigree().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnimalDTO> getAnimalsByCategory(AnimalCategory category) {
+        return animalRepository.findByCategory(category).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnimalDTO> getAnimalsByStatus(AnimalStatus status) {
+        return animalRepository.findByStatus(status).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AnimalDTO getAnimalByInternalId(String internalId) {
+        Animal animal = animalRepository.findByInternalIdWithPedigree(internalId)
+                .orElseThrow(() -> new RuntimeException("Animal non trouvé avec l'identifiant: " + internalId));
+        return mapToDTO(animal);
+    }
+
+    @Override
+    @Transactional
+    public AnimalDTO createAnimal(AnimalDTO dto) {
+        Animal animal = Animal.builder()
+                .internalId(dto.getInternalId())
+                .name(dto.getName())
+                .earTagNumber(dto.getEarTagNumber())
+                .rfidCode(dto.getRfidCode())
+                .breed(dto.getBreed())
+                .birthDate(dto.getBirthDate())
+                .gender(dto.getGender() != null ? dto.getGender() : "FEMALE")
+                .category(dto.getCategory() != null ? dto.getCategory() : AnimalCategory.MILKING_COW)
+                .status(dto.getStatus() != null ? dto.getStatus() : AnimalStatus.HEALTHY)
+                .weight(dto.getWeight())
+                .temperature(dto.getTemperature())
+                .dailyMilkYield(dto.getDailyMilkYield() != null ? dto.getDailyMilkYield() : 0.0)
+                .lactationNumber(dto.getLactationNumber())
+                .daysInMilk(dto.getDaysInMilk())
+                .totalLactationMilk(dto.getTotalLactationMilk())
+                .reproStatus(dto.getReproStatus())
+                .avatarEmoji(dto.getAvatarEmoji() != null ? dto.getAvatarEmoji() : "🐄")
+                .imageUrl(dto.getImageUrl())
+                .origin(dto.getOrigin())
+                .notes(dto.getNotes())
+                .build();
+
+        if (dto.getPedigree() != null) {
+            PedigreeDTO pDto = dto.getPedigree();
+            Pedigree pedigree = Pedigree.builder()
+                    .animal(animal)
+                    .subjectNote(pDto.getSubjectNote())
+                    .fatherName(pDto.getFatherName())
+                    .fatherEarTag(pDto.getFatherEarTag())
+                    .fatherBreed(pDto.getFatherBreed())
+                    .fatherNote(pDto.getFatherNote())
+                    .motherName(pDto.getMotherName())
+                    .motherEarTag(pDto.getMotherEarTag())
+                    .motherBreed(pDto.getMotherBreed())
+                    .motherNote(pDto.getMotherNote())
+                    .grandFatherPaternal(pDto.getGrandFatherPaternal())
+                    .grandMotherPaternal(pDto.getGrandMotherPaternal())
+                    .grandFatherMaternal(pDto.getGrandFatherMaternal())
+                    .grandMotherMaternal(pDto.getGrandMotherMaternal())
+                    .semenMobilityPercentage(pDto.getSemenMobilityPercentage())
+                    .semenConcentration(pDto.getSemenConcentration())
+                    .semenMorphologyOkPercentage(pDto.getSemenMorphologyOkPercentage())
+                    .semenDosesAvailable(pDto.getSemenDosesAvailable())
+                    .build();
+            animal.setPedigree(pedigree);
+        }
+
+        Animal saved = animalRepository.save(animal);
+        return mapToDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public AnimalDTO updateAnimal(String internalId, AnimalDTO dto) {
+        Animal animal = animalRepository.findByInternalIdWithPedigree(internalId)
+                .orElseThrow(() -> new RuntimeException("Animal non trouvé avec l'identifiant: " + internalId));
+
+        if (dto.getName() != null) animal.setName(dto.getName());
+        if (dto.getEarTagNumber() != null) animal.setEarTagNumber(dto.getEarTagNumber());
+        if (dto.getRfidCode() != null) animal.setRfidCode(dto.getRfidCode());
+        if (dto.getBreed() != null) animal.setBreed(dto.getBreed());
+        if (dto.getBirthDate() != null) animal.setBirthDate(dto.getBirthDate());
+        if (dto.getGender() != null) animal.setGender(dto.getGender());
+        if (dto.getCategory() != null) animal.setCategory(dto.getCategory());
+        if (dto.getStatus() != null) animal.setStatus(dto.getStatus());
+        if (dto.getWeight() != null) animal.setWeight(dto.getWeight());
+        if (dto.getTemperature() != null) animal.setTemperature(dto.getTemperature());
+        if (dto.getDailyMilkYield() != null) animal.setDailyMilkYield(dto.getDailyMilkYield());
+        if (dto.getLactationNumber() != null) animal.setLactationNumber(dto.getLactationNumber());
+        if (dto.getDaysInMilk() != null) animal.setDaysInMilk(dto.getDaysInMilk());
+        if (dto.getTotalLactationMilk() != null) animal.setTotalLactationMilk(dto.getTotalLactationMilk());
+        if (dto.getReproStatus() != null) animal.setReproStatus(dto.getReproStatus());
+        if (dto.getAvatarEmoji() != null) animal.setAvatarEmoji(dto.getAvatarEmoji());
+        if (dto.getImageUrl() != null) animal.setImageUrl(dto.getImageUrl());
+        if (dto.getOrigin() != null) animal.setOrigin(dto.getOrigin());
+        if (dto.getNotes() != null) animal.setNotes(dto.getNotes());
+
+        if (dto.getPedigree() != null) {
+            PedigreeDTO pDto = dto.getPedigree();
+            Pedigree pedigree = animal.getPedigree();
+            if (pedigree == null) {
+                pedigree = new Pedigree();
+                pedigree.setAnimal(animal);
+                animal.setPedigree(pedigree);
+            }
+            pedigree.setSubjectNote(pDto.getSubjectNote());
+            pedigree.setFatherName(pDto.getFatherName());
+            pedigree.setFatherEarTag(pDto.getFatherEarTag());
+            pedigree.setFatherBreed(pDto.getFatherBreed());
+            pedigree.setFatherNote(pDto.getFatherNote());
+            pedigree.setMotherName(pDto.getMotherName());
+            pedigree.setMotherEarTag(pDto.getMotherEarTag());
+            pedigree.setMotherBreed(pDto.getMotherBreed());
+            pedigree.setMotherNote(pDto.getMotherNote());
+            pedigree.setGrandFatherPaternal(pDto.getGrandFatherPaternal());
+            pedigree.setGrandMotherPaternal(pDto.getGrandMotherPaternal());
+            pedigree.setGrandFatherMaternal(pDto.getGrandFatherMaternal());
+            pedigree.setGrandMotherMaternal(pDto.getGrandMotherMaternal());
+            pedigree.setSemenMobilityPercentage(pDto.getSemenMobilityPercentage());
+            pedigree.setSemenConcentration(pDto.getSemenConcentration());
+            pedigree.setSemenMorphologyOkPercentage(pDto.getSemenMorphologyOkPercentage());
+            pedigree.setSemenDosesAvailable(pDto.getSemenDosesAvailable());
+        }
+
+        Animal saved = animalRepository.save(animal);
+        return mapToDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAnimal(String internalId) {
+        Animal animal = animalRepository.findByInternalId(internalId)
+                .orElseThrow(() -> new RuntimeException("Animal non trouvé avec l'identifiant: " + internalId));
+        animalRepository.delete(animal);
+    }
+
+    public AnimalDTO mapToDTO(Animal animal) {
+        PedigreeDTO pDto = null;
+        if (animal.getPedigree() != null) {
+            Pedigree p = animal.getPedigree();
+            pDto = PedigreeDTO.builder()
+                    .id(p.getId())
+                    .animalId(animal.getId())
+                    .animalInternalId(animal.getInternalId())
+                    .animalName(animal.getName())
+                    .subjectNote(p.getSubjectNote())
+                    .fatherName(p.getFatherName())
+                    .fatherEarTag(p.getFatherEarTag())
+                    .fatherBreed(p.getFatherBreed())
+                    .fatherNote(p.getFatherNote())
+                    .motherName(p.getMotherName())
+                    .motherEarTag(p.getMotherEarTag())
+                    .motherBreed(p.getMotherBreed())
+                    .motherNote(p.getMotherNote())
+                    .grandFatherPaternal(p.getGrandFatherPaternal())
+                    .grandMotherPaternal(p.getGrandMotherPaternal())
+                    .grandFatherMaternal(p.getGrandFatherMaternal())
+                    .grandMotherMaternal(p.getGrandMotherMaternal())
+                    .semenMobilityPercentage(p.getSemenMobilityPercentage())
+                    .semenConcentration(p.getSemenConcentration())
+                    .semenMorphologyOkPercentage(p.getSemenMorphologyOkPercentage())
+                    .semenDosesAvailable(p.getSemenDosesAvailable())
+                    .build();
+        }
+
+        String gLabel = "Femelle";
+        if ("MALE".equalsIgnoreCase(animal.getGender()) || animal.getCategory() == AnimalCategory.MALE_BULL) {
+            gLabel = "Mâle";
+        }
+
+        return AnimalDTO.builder()
+                .id(animal.getId())
+                .internalId(animal.getInternalId())
+                .name(animal.getName())
+                .earTagNumber(animal.getEarTagNumber())
+                .rfidCode(animal.getRfidCode())
+                .breed(animal.getBreed())
+                .birthDate(animal.getBirthDate())
+                .gender(animal.getGender() != null ? animal.getGender() : ("MALE".equals(gLabel) ? "MALE" : "FEMALE"))
+                .genderLabel(gLabel)
+                .category(animal.getCategory())
+                .categoryLabel(animal.getCategory() != null ? animal.getCategory().getLabel() : null)
+                .status(animal.getStatus())
+                .statusLabel(animal.getStatus() != null ? animal.getStatus().getLabel() : null)
+                .weight(animal.getWeight())
+                .temperature(animal.getTemperature())
+                .dailyMilkYield(animal.getDailyMilkYield())
+                .lactationNumber(animal.getLactationNumber())
+                .daysInMilk(animal.getDaysInMilk())
+                .totalLactationMilk(animal.getTotalLactationMilk())
+                .reproStatus(animal.getReproStatus())
+                .avatarEmoji(animal.getAvatarEmoji())
+                .imageUrl(animal.getImageUrl())
+                .origin(animal.getOrigin())
+                .notes(animal.getNotes())
+                .pedigree(pDto)
+                .build();
+    }
+}
