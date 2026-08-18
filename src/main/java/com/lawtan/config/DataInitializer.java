@@ -2,12 +2,18 @@ package com.lawtan.config;
 
 import com.lawtan.entity.Animal;
 import com.lawtan.entity.HealthRecord;
+import com.lawtan.entity.MilkProduction;
 import com.lawtan.entity.Pedigree;
+import com.lawtan.entity.ReproductionEvent;
 import com.lawtan.entity.VaccineSchedule;
 import com.lawtan.model.AnimalCategory;
 import com.lawtan.model.AnimalStatus;
+import com.lawtan.model.MilkSession;
+import com.lawtan.model.ReproEventType;
 import com.lawtan.repository.AnimalRepository;
 import com.lawtan.repository.HealthRecordRepository;
+import com.lawtan.repository.MilkProductionRepository;
+import com.lawtan.repository.ReproductionEventRepository;
 import com.lawtan.repository.VaccineScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +32,8 @@ public class DataInitializer implements CommandLineRunner {
     private final AnimalRepository animalRepository;
     private final HealthRecordRepository healthRecordRepository;
     private final VaccineScheduleRepository vaccineScheduleRepository;
+    private final ReproductionEventRepository reproductionEventRepository;
+    private final MilkProductionRepository milkProductionRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -37,12 +45,16 @@ public class DataInitializer implements CommandLineRunner {
             log.debug("Vérification colonne image_url: " + e.getMessage());
         }
 
-        if (animalRepository.count() > 0) {
-            log.info("Données déjà présentes dans la base Lawtan.");
-            return;
+        if (animalRepository.count() == 0) {
+            initAnimalsAndHealth();
         }
 
-        log.info("Initialisation des données de démo pour la Ferme LAWTAN Agro Industries...");
+        initReproductionData();
+        initMilkData();
+    }
+
+    private void initAnimalsAndHealth() {
+        log.info("Initialisation des animaux de démo pour la Ferme LAWTAN Agro Industries...");
 
         // 1. NDIRA (FL-001)
         Animal ndira = Animal.builder()
@@ -608,7 +620,131 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
 
         vaccineScheduleRepository.saveAll(List.of(vs1, vs2, vs3));
-
         log.info("Initialisation terminée avec succès : 13 animaux, pedigrees, carnet de santé et calendrier vaccinal prêts !");
+    }
+
+    private void initReproductionData() {
+        if (reproductionEventRepository.count() > 0) {
+            return;
+        }
+
+        log.info("Initialisation des événements de reproduction...");
+
+        animalRepository.findByInternalId("FL-005").ifPresent(fatou -> {
+            ReproductionEvent re1 = ReproductionEvent.builder()
+                    .animal(fatou)
+                    .eventType(ReproEventType.HEAT_DETECTION)
+                    .eventDate(LocalDate.now().minusDays(3))
+                    .operatorName("Bouvier Responsable")
+                    .observations("Signes œstrus francs, agitation et chevauchement.")
+                    .isConfirmed(true)
+                    .build();
+
+            ReproductionEvent re2 = ReproductionEvent.builder()
+                    .animal(fatou)
+                    .eventType(ReproEventType.ARTIFICIAL_INSEMINATION)
+                    .eventDate(LocalDate.now().minusDays(1))
+                    .bullOrSemenUsed("KADER (FL-010) — Semence A+")
+                    .operatorName("Dr. Fall (Vétérinaire Ferme)")
+                    .expectedDryOffDate(LocalDate.now().minusDays(1).plusDays(222))
+                    .expectedCalvingDate(LocalDate.now().minusDays(1).plusDays(282))
+                    .observations("Insémination réussie avec paille congelée KADER A+.")
+                    .isConfirmed(true)
+                    .build();
+
+            reproductionEventRepository.saveAll(List.of(re1, re2));
+        });
+
+        animalRepository.findByInternalId("FL-004").ifPresent(coumba -> {
+            ReproductionEvent re = ReproductionEvent.builder()
+                    .animal(coumba)
+                    .eventType(ReproEventType.PREGNANCY_DIAGNOSIS)
+                    .eventDate(LocalDate.now().minusDays(30))
+                    .bullOrSemenUsed("BRAHMA (IND-7712)")
+                    .operatorName("Dr. Fall")
+                    .expectedDryOffDate(LocalDate.now().plusDays(55))
+                    .expectedCalvingDate(LocalDate.now().plusDays(115))
+                    .observations("Échographie positive (gestation 4 mois). Vœu femelle détecté.")
+                    .isConfirmed(true)
+                    .build();
+            reproductionEventRepository.save(re);
+        });
+
+        animalRepository.findByInternalId("FL-007").ifPresent(rokhaya -> {
+            ReproductionEvent re = ReproductionEvent.builder()
+                    .animal(rokhaya)
+                    .eventType(ReproEventType.PREGNANCY_DIAGNOSIS)
+                    .eventDate(LocalDate.now().minusMonths(8))
+                    .bullOrSemenUsed("SULTAN (USA-42891)")
+                    .operatorName("Dr. Fall")
+                    .expectedDryOffDate(LocalDate.now().minusDays(48))
+                    .expectedCalvingDate(LocalDate.now().plusDays(12))
+                    .observations("Vêlage imminent sous 12 jours. Surveillance rapprochée au box de mise bas.")
+                    .isConfirmed(true)
+                    .build();
+            reproductionEventRepository.save(re);
+        });
+
+        animalRepository.findByInternalId("FL-002").ifPresent(mariama -> {
+            ReproductionEvent re = ReproductionEvent.builder()
+                    .animal(mariama)
+                    .eventType(ReproEventType.DRY_OFF)
+                    .eventDate(LocalDate.now().plusDays(7))
+                    .bullOrSemenUsed("VALENTIN (FR-88910)")
+                    .operatorName("Dr. Fall")
+                    .expectedDryOffDate(LocalDate.now().plusDays(7))
+                    .expectedCalvingDate(LocalDate.now().plusDays(67))
+                    .observations("Tarissement programmé sous 7 jours avant prochain vêlage.")
+                    .isConfirmed(true)
+                    .build();
+            reproductionEventRepository.save(re);
+        });
+
+        log.info("Événements de reproduction initialisés.");
+    }
+
+    private void initMilkData() {
+        if (milkProductionRepository.count() > 0) {
+            return;
+        }
+
+        log.info("Initialisation des collectes de traite...");
+        LocalDate today = LocalDate.now();
+
+        List<String> milkingIds = List.of("FL-001", "FL-002", "FL-004", "FL-005", "FL-006", "FL-007");
+
+        for (String id : milkingIds) {
+            animalRepository.findByInternalId(id).ifPresent(cow -> {
+                double base = (cow.getDailyMilkYield() != null && cow.getDailyMilkYield() > 0) ? cow.getDailyMilkYield() : 18.0;
+                double mYield = Math.round((base * 0.58) * 10.0) / 10.0;
+                double eYield = Math.round((base * 0.42) * 10.0) / 10.0;
+
+                MilkProduction mpMorn = MilkProduction.builder()
+                        .animal(cow)
+                        .productionDate(today)
+                        .session(MilkSession.MORNING)
+                        .volumeLiters(mYield)
+                        .milkTemperature(34.2)
+                        .fatPercentage(4.1)
+                        .destinationTank("Cuve Réfrigérée N°1 (Bio)")
+                        .isOrganicCompliant(true)
+                        .build();
+
+                MilkProduction mpEve = MilkProduction.builder()
+                        .animal(cow)
+                        .productionDate(today)
+                        .session(MilkSession.EVENING)
+                        .volumeLiters(eYield)
+                        .milkTemperature(34.0)
+                        .fatPercentage(4.2)
+                        .destinationTank("Cuve Réfrigérée N°1 (Bio)")
+                        .isOrganicCompliant(true)
+                        .build();
+
+                milkProductionRepository.saveAll(List.of(mpMorn, mpEve));
+            });
+        }
+
+        log.info("Collectes de traite initialisées.");
     }
 }

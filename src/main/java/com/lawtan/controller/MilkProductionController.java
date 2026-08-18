@@ -1,6 +1,8 @@
 package com.lawtan.controller;
 
+import com.lawtan.dto.MilkHistoryDTO;
 import com.lawtan.dto.MilkProductionDTO;
+import com.lawtan.dto.TankStatusDTO;
 import com.lawtan.service.MilkProductionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -34,5 +36,15 @@ public class MilkProductionController {
     @PostMapping("/record")
     public ResponseEntity<MilkProductionDTO> recordMilkProduction(@RequestBody MilkProductionDTO dto) {
         return new ResponseEntity<>(milkProductionService.recordMilkProduction(dto), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/tank-status")
+    public ResponseEntity<TankStatusDTO> getTankStatus() {
+        return ResponseEntity.ok(milkProductionService.getTankStatus());
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<MilkHistoryDTO>> getMilkHistory(@RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(milkProductionService.getMilkHistory(days));
     }
 }
