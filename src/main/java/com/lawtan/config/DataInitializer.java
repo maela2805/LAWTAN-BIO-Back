@@ -31,6 +31,7 @@ public class DataInitializer implements CommandLineRunner {
     private final FeedStockRepository feedStockRepository;
     private final FeedRationRepository feedRationRepository;
     private final SolarEnergyMetricRepository solarEnergyMetricRepository;
+    private final SupplierRepository supplierRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -51,6 +52,7 @@ public class DataInitializer implements CommandLineRunner {
         initTransformationData();
         initCommercialData();
         initFeedAndSolarData();
+        initSuppliersData();
     }
 
     private void initAnimalsAndHealth() {
@@ -1194,5 +1196,133 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("Sprint 5 initialisé : Stocks d'aliments, Rations équilibrées et Télémétrie solaire enregistrés avec succès !");
     }
+
+    private void initSuppliersData() {
+        if (supplierRepository.count() > 0) return;
+        log.info("Initialisation du Répertoire des Fournisseurs Bio & Intrants LAWTAN...");
+
+        Supplier s1 = new Supplier(
+                "Parcelles Bio Pout",
+                "Agro Pout Bio SARL",
+                "Mamadou Ousmane Ndiaye",
+                "+221 77 654 32 10",
+                "contact@agropout.sn",
+                "Route Nationale 2, Pout",
+                "Thiès / Pout",
+                "FOURRAGE_ALIMENT",
+                "Paiement à livraison / Wave",
+                true
+        );
+        s1.setNineaNumber("SN-DKR-2021-B-8901");
+        s1.setTotalOrdersCount(8);
+        s1.setTotalSpentFcfa(1850000.0);
+        s1.setNotes("Producteur certifié d'ensilage de maïs biologique et luzerne en vert.");
+
+        Supplier s2 = new Supplier(
+                "GIE Femmes Niayes",
+                "GIE Femmes Productrices des Niayes",
+                "Fatou Sarr",
+                "+221 78 123 45 67",
+                "gie.niayes.bio@gmail.com",
+                "Zone Maraîchère Kayar",
+                "Kayar / Niayes",
+                "FOURRAGE_ALIMENT",
+                "Comptant / Orange Money",
+                true
+        );
+        s2.setNineaNumber("SN-KAY-2022-GIE-452");
+        s2.setTotalOrdersCount(12);
+        s2.setTotalSpentFcfa(940000.0);
+        s2.setNotes("Spécialiste du foin de niébé séché à l'ombre, haute teneur en protéines brutes.");
+
+        Supplier s3 = new Supplier(
+                "Huilerie Artisanale Kaolack",
+                "Kaolack Agro Press GIE",
+                "Babacar Sy",
+                "+221 76 987 65 43",
+                "agro.kaolack@yahoo.fr",
+                "Avenue Valdiodio Ndiaye",
+                "Kaolack",
+                "FOURRAGE_ALIMENT",
+                "30 jours fin de mois",
+                true
+        );
+        s3.setNineaNumber("SN-KLK-2019-B-1123");
+        s3.setTotalOrdersCount(5);
+        s3.setTotalSpentFcfa(1200000.0);
+        s3.setNotes("Tourteaux d'arachide bio première pression à froid, sans solvants chimiques.");
+
+        Supplier s4 = new Supplier(
+                "Grands Moulins de Dakar (GMD Agro)",
+                "Grands Moulins de Dakar SA",
+                "Jean-Baptiste Mendy",
+                "+221 33 839 00 00",
+                "commandes.agro@gmd.sn",
+                "Zone Industrielle Bel-Air",
+                "Dakar",
+                "FOURRAGE_ALIMENT",
+                "Virement Bancaire 15 jours",
+                false
+        );
+        s4.setNineaNumber("SN-DKR-1980-A-0004");
+        s4.setTotalOrdersCount(15);
+        s4.setTotalSpentFcfa(2800000.0);
+        s4.setNotes("Fournisseur principal de son fin de blé et brisures de céréales.");
+
+        Supplier s5 = new Supplier(
+                "Plantation Bio Thiès",
+                "Moringa & Bio Herb Africa",
+                "Dr. Aïssatou Ba",
+                "+221 77 345 67 89",
+                "aissatou.ba@moringa-africa.sn",
+                "Km 4 Route de Mont-Rolland",
+                "Thiès",
+                "VETERINAIRE_SANTE",
+                "Comptant / Wave",
+                true
+        );
+        s5.setNineaNumber("SN-THS-2023-B-6789");
+        s5.setTotalOrdersCount(6);
+        s5.setTotalSpentFcfa(450000.0);
+        s5.setNotes("Poudre pure de feuilles de Moringa et complexes minéraux-vitaminés (CMV) bio certifiés.");
+
+        Supplier s6 = new Supplier(
+                "Salins Siné Saloum",
+                "Coopérative Sel Artisanal Gandiol",
+                "Cheikh Tidiane Diouf",
+                "+221 70 876 54 32",
+                "salins.gandiol@orange.sn",
+                "Delta du Saloum",
+                "Fatick / Foundiougne",
+                "FOURRAGE_ALIMENT",
+                "Comptant à la commande",
+                true
+        );
+        s6.setNineaNumber("SN-FTK-2020-C-3301");
+        s6.setTotalOrdersCount(4);
+        s6.setTotalSpentFcfa(180000.0);
+        s6.setNotes("Blocs à lécher en sel gemme purifié du Saloum avec oligo-éléments naturels.");
+
+        Supplier s7 = new Supplier(
+                "EcoPack Sénégal",
+                "EcoPack Solutions Packaging",
+                "Ibrahima Fall",
+                "+221 77 890 12 34",
+                "sales@ecopack.sn",
+                "Route de Rufisque Km 14",
+                "Dakar / Rufisque",
+                "EMBALLAGE_PACKAGING",
+                "Acompte 50% / Solde livraison",
+                true
+        );
+        s7.setNineaNumber("SN-DKR-2022-B-5541");
+        s7.setTotalOrdersCount(10);
+        s7.setTotalSpentFcfa(3200000.0);
+        s7.setNotes("Flacons et bocaux en verre recyclable pour yaourts brassés, étiquettes compostables.");
+
+        supplierRepository.saveAll(List.of(s1, s2, s3, s4, s5, s6, s7));
+        log.info("7 Fournisseurs partenaires initialisés avec succès pour LAWTAN !");
+    }
 }
+
 
