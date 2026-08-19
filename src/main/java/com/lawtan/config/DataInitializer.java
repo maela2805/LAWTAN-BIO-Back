@@ -1,20 +1,8 @@
 package com.lawtan.config;
 
-import com.lawtan.entity.Animal;
-import com.lawtan.entity.HealthRecord;
-import com.lawtan.entity.MilkProduction;
-import com.lawtan.entity.Pedigree;
-import com.lawtan.entity.ReproductionEvent;
-import com.lawtan.entity.VaccineSchedule;
-import com.lawtan.model.AnimalCategory;
-import com.lawtan.model.AnimalStatus;
-import com.lawtan.model.MilkSession;
-import com.lawtan.model.ReproEventType;
-import com.lawtan.repository.AnimalRepository;
-import com.lawtan.repository.HealthRecordRepository;
-import com.lawtan.repository.MilkProductionRepository;
-import com.lawtan.repository.ReproductionEventRepository;
-import com.lawtan.repository.VaccineScheduleRepository;
+import com.lawtan.entity.*;
+import com.lawtan.model.*;
+import com.lawtan.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -34,6 +22,9 @@ public class DataInitializer implements CommandLineRunner {
     private final VaccineScheduleRepository vaccineScheduleRepository;
     private final ReproductionEventRepository reproductionEventRepository;
     private final MilkProductionRepository milkProductionRepository;
+    private final RecipeRepository recipeRepository;
+    private final TransformationBatchRepository transformationBatchRepository;
+    private final ProductStockRepository productStockRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -51,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
 
         initReproductionData();
         initMilkData();
+        initTransformationData();
     }
 
     private void initAnimalsAndHealth() {
@@ -746,5 +738,212 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         log.info("Collectes de traite initialisées.");
+    }
+
+    private void initTransformationData() {
+        if (recipeRepository.count() > 0) {
+            return;
+        }
+
+        log.info("Initialisation des recettes et lots de transformation laitière (Sprint 3)...");
+
+        // 1. Recettes Standards
+        Recipe recCheese = Recipe.builder()
+                .code("REC-CHEESE-01")
+                .name("Fromage Fermier Frais Bio (200g)")
+                .productType(ProductType.CHEESE)
+                .targetUnit("pièce 200g")
+                .milkLitersPerUnit(2.0) // 2 Litres de lait pour 1 fromage de 200g
+                .ingredientsList("Lait entier bio pasteurisé, ferments mésophiles, présure liquide naturelle, sel de Saloum non raffiné")
+                .shelfLifeDays(45)
+                .processInstructions("Pasteurisation douce 65°C 30min, refroidissement 36°C, ensemencement ferments 30min, emprésurage 45min, découpe caillé en dés 1cm, égouttage en faisselle 18h, salage manuel.")
+                .emoji("🧀")
+                .standardSellingPriceFcfa(2000.0)
+                .build();
+
+        Recipe recYogurt = Recipe.builder()
+                .code("REC-YOG-01")
+                .name("Yaourt Brassé Bio Nature (Pot 125g)")
+                .productType(ProductType.YOGURT)
+                .targetUnit("pot 125g")
+                .milkLitersPerUnit(0.15) // 0.15 L de lait pour 1 pot de 125g
+                .ingredientsList("Lait entier bio, ferments lactiques vivants (Lactobacillus bulgaricus & Streptococcus thermophilus)")
+                .shelfLifeDays(21)
+                .processInstructions("Chauffage 85°C 5min, refroidissement 43°C, ensemencement ferments vivants, étuvage 6h à 42°C, brassage délicat et mise en pots.")
+                .emoji("🥣")
+                .standardSellingPriceFcfa(600.0)
+                .build();
+
+        Recipe recSow = Recipe.builder()
+                .code("REC-SOW-01")
+                .name("Lait Caillé Bio Artisanal (Sow - Bouteille 1L)")
+                .productType(ProductType.CURDLED_MILK)
+                .targetUnit("bouteille 1L")
+                .milkLitersPerUnit(1.0)
+                .ingredientsList("Lait entier bio pasteurisé, ferments traditionnels de terroir, sucre de canne bio (option)")
+                .shelfLifeDays(14)
+                .processInstructions("Pasteurisation 72°C 15s, maturation lente à 30°C pendant 12h jusqu'à pH 4.2, battage traditionnel et embouteillage stérile.")
+                .emoji("🥛")
+                .standardSellingPriceFcfa(1200.0)
+                .build();
+
+        Recipe recButter = Recipe.builder()
+                .code("REC-BUTTER-01")
+                .name("Beurre Fermier Bio Demi-Sel (Plaquette 250g)")
+                .productType(ProductType.BUTTER)
+                .targetUnit("plaquette 250g")
+                .milkLitersPerUnit(5.0) // ~20 L de lait pour 1 kg de beurre, soit 5L par 250g
+                .ingredientsList("Crème fraîche maturée bio, sel fin de Saloum (2%)")
+                .shelfLifeDays(60)
+                .processInstructions("Écrémage du lait du matin, pasteurisation crème, maturation biologique 18h à 14°C, barattage mécanique, lavage eau glacée, malaxage et moulage.")
+                .emoji("🧈")
+                .standardSellingPriceFcfa(2500.0)
+                .build();
+
+        Recipe recPastMilk = Recipe.builder()
+                .code("REC-MILK-01")
+                .name("Lait Frais Entier Pasteurisé Bio (1L)")
+                .productType(ProductType.PASTEURIZED_MILK)
+                .targetUnit("bouteille 1L")
+                .milkLitersPerUnit(1.0)
+                .ingredientsList("100% Lait entier de vaches nourries à l'herbe bio")
+                .shelfLifeDays(7)
+                .processInstructions("Homogénéisation légère, pasteurisation flash 75°C 20s, refroidissement immédiat à 3°C et conditionnement sous flux laminaire.")
+                .emoji("🍶")
+                .standardSellingPriceFcfa(1000.0)
+                .build();
+
+        recipeRepository.saveAll(List.of(recCheese, recYogurt, recSow, recButter, recPastMilk));
+
+        LocalDate today = LocalDate.now();
+
+        // 2. Lots de fabrication récents
+        // Lot 1 : Fromage Frais (Terminé)
+        TransformationBatch b1 = TransformationBatch.builder()
+                .batchNumber("LOT-TR-20260817-01")
+                .recipe(recCheese)
+                .status(BatchStatus.COMPLETED)
+                .productionDate(today.minusDays(2))
+                .milkLitersConsumed(40.0)
+                .expectedQuantity(20.0)
+                .actualQuantityProduced(19.5)
+                .unit("pièces")
+                .yieldEfficiencyPercentage(97.5)
+                .wasteLossQuantity(0.5)
+                .dlcExpiryDate(today.minusDays(2).plusDays(45))
+                .operatorName("Mamadou Diallo (Maître Fromager)")
+                .qualityNotes("Excellente tenue de pâte, texture crémeuse, goût franc et doux.")
+                .phLevel(5.1)
+                .fatPercentage(4.2)
+                .sourceTank("Cuve Réfrigérée N°1 (Bio)")
+                .build();
+
+        // Lot 2 : Lait Caillé Sow (Terminé)
+        TransformationBatch b2 = TransformationBatch.builder()
+                .batchNumber("LOT-TR-20260818-01")
+                .recipe(recSow)
+                .status(BatchStatus.COMPLETED)
+                .productionDate(today.minusDays(1))
+                .milkLitersConsumed(50.0)
+                .expectedQuantity(50.0)
+                .actualQuantityProduced(50.0)
+                .unit("bouteilles 1L")
+                .yieldEfficiencyPercentage(100.0)
+                .wasteLossQuantity(0.0)
+                .dlcExpiryDate(today.minusDays(1).plusDays(14))
+                .operatorName("Awa Seck (Responsable Laiterie)")
+                .qualityNotes("Onctuosité parfaite, acidité maîtrisée pH 4.2.")
+                .phLevel(4.2)
+                .fatPercentage(4.1)
+                .sourceTank("Cuve Réfrigérée N°1 (Bio)")
+                .build();
+
+        // Lot 3 : Yaourt Brassé (Terminé)
+        TransformationBatch b3 = TransformationBatch.builder()
+                .batchNumber("LOT-TR-20260819-01")
+                .recipe(recYogurt)
+                .status(BatchStatus.COMPLETED)
+                .productionDate(today)
+                .milkLitersConsumed(30.0)
+                .expectedQuantity(200.0)
+                .actualQuantityProduced(198.0)
+                .unit("pots 125g")
+                .yieldEfficiencyPercentage(99.0)
+                .wasteLossQuantity(2.0)
+                .dlcExpiryDate(today.plusDays(21))
+                .operatorName("Awa Seck")
+                .qualityNotes("Texture soyeuse, arôme naturel lactique pur.")
+                .phLevel(4.4)
+                .fatPercentage(4.0)
+                .sourceTank("Cuve Réfrigérée N°1 (Bio)")
+                .build();
+
+        // Lot 4 : Fromage Fermier (En cours d'égouttage / affinage)
+        TransformationBatch b4 = TransformationBatch.builder()
+                .batchNumber("LOT-TR-20260819-02")
+                .recipe(recCheese)
+                .status(BatchStatus.IN_PROGRESS)
+                .productionDate(today)
+                .milkLitersConsumed(60.0)
+                .expectedQuantity(30.0)
+                .actualQuantityProduced(null)
+                .unit("pièces")
+                .yieldEfficiencyPercentage(null)
+                .wasteLossQuantity(null)
+                .dlcExpiryDate(today.plusDays(45))
+                .operatorName("Mamadou Diallo")
+                .qualityNotes("En cours d'égouttage en faisselle dans la salle thermo-régulée.")
+                .phLevel(5.3)
+                .fatPercentage(4.2)
+                .sourceTank("Cuve Réfrigérée N°1 (Bio)")
+                .build();
+
+        transformationBatchRepository.saveAll(List.of(b1, b2, b3, b4));
+
+        // 3. Stocks Produits Transformés
+        ProductStock s1 = ProductStock.builder()
+                .recipe(recCheese)
+                .batch(b1)
+                .productName("Fromage Fermier Frais Bio (200g)")
+                .quantityAvailable(18.0)
+                .unit("pièces")
+                .unitPriceFcfa(2000.0)
+                .totalValueFcfa(36000.0)
+                .mfgDate(today.minusDays(2))
+                .dlcExpiryDate(today.minusDays(2).plusDays(45))
+                .storageLocation("Chambre Froide Fromagerie (+4°C)")
+                .isOrganicCertified(true)
+                .build();
+
+        ProductStock s2 = ProductStock.builder()
+                .recipe(recSow)
+                .batch(b2)
+                .productName("Lait Caillé Bio Artisanal (Sow 1L)")
+                .quantityAvailable(42.0)
+                .unit("bouteilles 1L")
+                .unitPriceFcfa(1200.0)
+                .totalValueFcfa(50400.0)
+                .mfgDate(today.minusDays(1))
+                .dlcExpiryDate(today.minusDays(1).plusDays(14))
+                .storageLocation("Chambre Froide Produits Frais (+4°C)")
+                .isOrganicCertified(true)
+                .build();
+
+        ProductStock s3 = ProductStock.builder()
+                .recipe(recYogurt)
+                .batch(b3)
+                .productName("Yaourt Brassé Bio Nature (Pot 125g)")
+                .quantityAvailable(195.0)
+                .unit("pots 125g")
+                .unitPriceFcfa(600.0)
+                .totalValueFcfa(117000.0)
+                .mfgDate(today)
+                .dlcExpiryDate(today.plusDays(21))
+                .storageLocation("Chambre Froide Produits Frais (+4°C)")
+                .isOrganicCertified(true)
+                .build();
+
+        productStockRepository.saveAll(List.of(s1, s2, s3));
+        log.info("Initialisation de la transformation laitière terminée : 5 recettes, 4 lots et stocks valorisés prêts !");
     }
 }
