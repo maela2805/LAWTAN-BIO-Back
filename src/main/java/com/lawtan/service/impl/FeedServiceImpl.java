@@ -1,0 +1,143 @@
+package com.lawtan.service.impl;
+
+import com.lawtan.dto.FeedRationDTO;
+import com.lawtan.dto.FeedStockDTO;
+import com.lawtan.entity.FeedRation;
+import com.lawtan.entity.FeedStock;
+import com.lawtan.repository.FeedRationRepository;
+import com.lawtan.repository.FeedStockRepository;
+import com.lawtan.service.FeedService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class FeedServiceImpl implements FeedService {
+
+    @Autowired
+    private FeedStockRepository feedStockRepository;
+
+    @Autowired
+    private FeedRationRepository feedRationRepository;
+
+    @Override
+    public List<FeedStockDTO> getAllFeedStocks() {
+        return feedStockRepository.findAll().stream().map(this::convertStockToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public FeedStockDTO getFeedStockById(Long id) {
+        FeedStock stock = feedStockRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stock d'aliment introuvable avec l'ID: " + id));
+        return convertStockToDTO(stock);
+    }
+
+    @Override
+    public FeedStockDTO updateFeedStockQuantity(Long id, Double newQuantityKg) {
+        FeedStock stock = feedStockRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Stock d'aliment introuvable avec l'ID: " + id));
+        stock.setCurrentStockKg(newQuantityKg != null ? newQuantityKg : 0.0);
+        FeedStock saved = feedStockRepository.save(stock);
+        return convertStockToDTO(saved);
+    }
+
+    @Override
+    public FeedStockDTO createFeedStock(FeedStockDTO dto) {
+        FeedStock stock = new FeedStock(
+                dto.getName(),
+                dto.getCategory(),
+                dto.getCurrentStockKg(),
+                dto.getAlertThresholdKg(),
+                dto.getUnitPricePerKgFcfa(),
+                dto.getSupplierName(),
+                dto.getStorageLocation(),
+                dto.getNotes()
+        );
+        FeedStock saved = feedStockRepository.save(stock);
+        return convertStockToDTO(saved);
+    }
+
+    @Override
+    public void deleteFeedStock(Long id) {
+        feedStockRepository.deleteById(id);
+    }
+
+    @Override
+    public List<FeedRationDTO> getAllRations() {
+        return feedRationRepository.findAll().stream().map(this::convertRationToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public FeedRationDTO getRationById(Long id) {
+        FeedRation ration = feedRationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ration introuvable avec l'ID: " + id));
+        return convertRationToDTO(ration);
+    }
+
+    @Override
+    public FeedRationDTO createRation(FeedRationDTO dto) {
+        FeedRation ration = new FeedRation(
+                dto.getRationName(),
+                dto.getTargetCategory(),
+                dto.getDailyDryMatterKg(),
+                dto.getCompositionDescription(),
+                dto.getDailyCostFcfa(),
+                dto.getEnergyUfl(),
+                dto.getProteinPdiGrams()
+        );
+        FeedRation saved = feedRationRepository.save(ration);
+        return convertRationToDTO(saved);
+    }
+
+    @Override
+    public FeedRationDTO updateRation(Long id, FeedRationDTO dto) {
+        FeedRation ration = feedRationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ration introuvable avec l'ID: " + id));
+        ration.setRationName(dto.getRationName());
+        ration.setTargetCategory(dto.getTargetCategory());
+        ration.setDailyDryMatterKg(dto.getDailyDryMatterKg());
+        ration.setCompositionDescription(dto.getCompositionDescription());
+        ration.setDailyCostFcfa(dto.getDailyCostFcfa());
+        ration.setEnergyUfl(dto.getEnergyUfl());
+        ration.setProteinPdiGrams(dto.getProteinPdiGrams());
+        FeedRation saved = feedRationRepository.save(ration);
+        return convertRationToDTO(saved);
+    }
+
+    @Override
+    public void deleteRation(Long id) {
+        feedRationRepository.deleteById(id);
+    }
+
+    private FeedStockDTO convertStockToDTO(FeedStock entity) {
+        FeedStockDTO dto = new FeedStockDTO();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setCategory(entity.getCategory());
+        dto.setCurrentStockKg(entity.getCurrentStockKg());
+        dto.setAlertThresholdKg(entity.getAlertThresholdKg());
+        dto.setUnitPricePerKgFcfa(entity.getUnitPricePerKgFcfa());
+        dto.setSupplierName(entity.getSupplierName());
+        dto.setStorageLocation(entity.getStorageLocation());
+        dto.setNotes(entity.getNotes());
+        dto.setIsLowStock(entity.getCurrentStockKg() != null && entity.getAlertThresholdKg() != null && entity.getCurrentStockKg() <= entity.getAlertThresholdKg());
+        return dto;
+    }
+
+    private FeedRationDTO convertRationToDTO(FeedRation entity) {
+        FeedRationDTO dto = new FeedRationDTO();
+        dto.setId(entity.getId());
+        dto.setRationName(entity.getRationName());
+        dto.setTargetCategory(entity.getTargetCategory());
+        dto.setDailyDryMatterKg(entity.getDailyDryMatterKg());
+        dto.setCompositionDescription(entity.getCompositionDescription());
+        dto.setDailyCostFcfa(entity.getDailyCostFcfa());
+        dto.setEnergyUfl(entity.getEnergyUfl());
+        dto.setProteinPdiGrams(entity.getProteinPdiGrams());
+        return dto;
+    }
+}

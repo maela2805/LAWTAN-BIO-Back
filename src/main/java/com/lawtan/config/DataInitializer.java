@@ -25,6 +25,12 @@ public class DataInitializer implements CommandLineRunner {
     private final RecipeRepository recipeRepository;
     private final TransformationBatchRepository transformationBatchRepository;
     private final ProductStockRepository productStockRepository;
+    private final CustomerRepository customerRepository;
+    private final SaleInvoiceRepository saleInvoiceRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
+    private final FeedStockRepository feedStockRepository;
+    private final FeedRationRepository feedRationRepository;
+    private final SolarEnergyMetricRepository solarEnergyMetricRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override
@@ -43,6 +49,8 @@ public class DataInitializer implements CommandLineRunner {
         initReproductionData();
         initMilkData();
         initTransformationData();
+        initCommercialData();
+        initFeedAndSolarData();
     }
 
     private void initAnimalsAndHealth() {
@@ -946,4 +954,245 @@ public class DataInitializer implements CommandLineRunner {
         productStockRepository.saveAll(List.of(s1, s2, s3));
         log.info("Initialisation de la transformation laitière terminée : 5 recettes, 4 lots et stocks valorisés prêts !");
     }
+
+    private void initCommercialData() {
+        if (customerRepository.count() > 0) {
+            return;
+        }
+
+        log.info("Initialisation des clients, commandes et factures (Sprint 4)...");
+
+        // 1. Clients de démonstration
+        Customer c1 = new Customer(
+                "Supermarché Auchan (Plateau)",
+                "Auchan Retail Sénégal SA",
+                CustomerType.SUPERMARKET,
+                "+221 33 889 40 00",
+                "achats@auchan.sn",
+                "Avenue Georges Pompidou",
+                "Dakar",
+                "SN-DKR-2015-B-142"
+        );
+        c1.setTotalOrdersCount(2);
+        c1.setTotalSpentFcfa(246000.0);
+        c1.setBalanceDueFcfa(0.0);
+        c1.setNotes("Distributeur officiel Bio — Livraison hebdomadaire les mardis et jeudis.");
+
+        Customer c2 = new Customer(
+                "Hôtel Pullman Teranga",
+                "Accor Hospitality Sénégal",
+                CustomerType.HOTEL_RESTAURANT,
+                "+221 33 889 22 00",
+                "chef.cuisine@pullman-teranga.com",
+                "Place de l'Indépendance",
+                "Dakar",
+                "SN-DKR-2008-B-088"
+        );
+        c2.setTotalOrdersCount(1);
+        c2.setTotalSpentFcfa(97500.0);
+        c2.setBalanceDueFcfa(0.0);
+        c2.setNotes("Commandes de fromages affinés et beurres fermiers pour le petit-déjeuner prestige.");
+
+        Customer c3 = new Customer(
+                "L'Épicerie Bio des Almadies",
+                "Terroir & Saveurs SARL",
+                CustomerType.GROCERY_BIO,
+                "+221 77 645 12 34",
+                "contact@epiceriebio-almadies.sn",
+                "Route des Almadies, en face Pharmacie",
+                "Dakar",
+                "SN-DKR-2020-B-991"
+        );
+        c3.setTotalOrdersCount(1);
+        c3.setTotalSpentFcfa(54000.0);
+        c3.setBalanceDueFcfa(24000.0);
+        c3.setNotes("Boutique diététique & bio. Reste à payer en attente de livraison complémentaire.");
+
+        Customer c4 = new Customer(
+                "Dr. Amadou Sow",
+                "Abonné Particulier Lait & Terroir",
+                CustomerType.INDIVIDUAL,
+                "+221 78 123 45 67",
+                "amadou.sow@gmail.com",
+                "Cité Keur Gorgui, Villa 42",
+                "Dakar",
+                null
+        );
+        c4.setTotalOrdersCount(1);
+        c4.setTotalSpentFcfa(14000.0);
+        c4.setBalanceDueFcfa(0.0);
+        c4.setNotes("Abonnement mensuel Lait frais pasteurisé et Lait caillé Sow.");
+
+        customerRepository.saveAll(List.of(c1, c2, c3, c4));
+
+        LocalDate today = LocalDate.now();
+
+        // 2. Factures de démonstration
+        // Facture 1 : Auchan Dakar (Payée Wave)
+        SaleInvoice inv1 = new SaleInvoice();
+        inv1.setInvoiceNumber("FAC-2026-0001");
+        inv1.setCustomer(c1);
+        inv1.setIssueDate(today.minusDays(5));
+        inv1.setDueDate(today.plusDays(10));
+        inv1.setPaymentMethod(PaymentMethod.WAVE);
+        inv1.setPaymentReference("WAVE-SN-9982410");
+        inv1.setNotes("Livraison conforme chambre froide Auchan.");
+        
+        InvoiceItem item1_1 = new InvoiceItem(inv1, 1L, "Fromage Fermier Frais Bio (200g)", ProductType.CHEESE, 20.0, "pièces 200g", 2000.0);
+        InvoiceItem item1_2 = new InvoiceItem(inv1, 3L, "Yaourt Brassé Bio Nature (Pot 125g)", ProductType.YOGURT, 60.0, "pots 125g", 600.0);
+        InvoiceItem item1_3 = new InvoiceItem(inv1, 2L, "Lait Caillé Bio Artisanal (Sow 1L)", ProductType.CURDLED_MILK, 25.0, "bouteilles 1L", 1200.0);
+        inv1.addItem(item1_1);
+        inv1.addItem(item1_2);
+        inv1.addItem(item1_3);
+        inv1.setPaidAmountFcfa(106000.0);
+        inv1.recalculateTotals();
+        inv1.setStatus(InvoiceStatus.PAID);
+        saleInvoiceRepository.save(inv1);
+
+        PaymentTransaction t1 = new PaymentTransaction(inv1, c1, 106000.0, PaymentMethod.WAVE, "WAVE-SN-9982410", "REC-2026-0001", "Comptabilité LAWTAN", "Règlement complet Wave");
+        paymentTransactionRepository.save(t1);
+
+        // Facture 2 : Hôtel Pullman Teranga (Payée Virement)
+        SaleInvoice inv2 = new SaleInvoice();
+        inv2.setInvoiceNumber("FAC-2026-0002");
+        inv2.setCustomer(c2);
+        inv2.setIssueDate(today.minusDays(3));
+        inv2.setDueDate(today.plusDays(12));
+        inv2.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
+        inv2.setPaymentReference("VIR-BOA-88201");
+        inv2.setNotes("Commande spéciale banquet.");
+
+        InvoiceItem item2_1 = new InvoiceItem(inv2, 1L, "Fromage Fermier Frais Bio (200g)", ProductType.CHEESE, 30.0, "pièces 200g", 2000.0);
+        InvoiceItem item2_2 = new InvoiceItem(inv2, 4L, "Beurre Fermier Bio Demi-Sel (250g)", ProductType.BUTTER, 15.0, "plaquettes 250g", 2500.0);
+        inv2.addItem(item2_1);
+        inv2.addItem(item2_2);
+        inv2.setPaidAmountFcfa(97500.0);
+        inv2.recalculateTotals();
+        inv2.setStatus(InvoiceStatus.PAID);
+        saleInvoiceRepository.save(inv2);
+
+        PaymentTransaction t2 = new PaymentTransaction(inv2, c2, 97500.0, PaymentMethod.BANK_TRANSFER, "VIR-BOA-88201", "REC-2026-0002", "Service Finance", "Virement Bancaire BOA");
+        paymentTransactionRepository.save(t2);
+
+        // Facture 3 : L'Épicerie Bio Almadies (Acompte 30k OM, Reste 24k)
+        SaleInvoice inv3 = new SaleInvoice();
+        inv3.setInvoiceNumber("FAC-2026-0003");
+        inv3.setCustomer(c3);
+        inv3.setIssueDate(today.minusDays(1));
+        inv3.setDueDate(today.plusDays(14));
+        inv3.setPaymentMethod(PaymentMethod.ORANGE_MONEY);
+        inv3.setPaymentReference("OM-SN-441029");
+        inv3.setNotes("Acompte versé par Orange Money à la commande.");
+
+        InvoiceItem item3_1 = new InvoiceItem(inv3, 2L, "Lait Caillé Bio Artisanal (Sow 1L)", ProductType.CURDLED_MILK, 25.0, "bouteilles 1L", 1200.0);
+        InvoiceItem item3_2 = new InvoiceItem(inv3, 3L, "Yaourt Brassé Bio Nature (Pot 125g)", ProductType.YOGURT, 40.0, "pots 125g", 600.0);
+        inv3.addItem(item3_1);
+        inv3.addItem(item3_2);
+        inv3.setPaidAmountFcfa(30000.0);
+        inv3.recalculateTotals();
+        inv3.setStatus(InvoiceStatus.PARTIALLY_PAID);
+        saleInvoiceRepository.save(inv3);
+
+        PaymentTransaction t3 = new PaymentTransaction(inv3, c3, 30000.0, PaymentMethod.ORANGE_MONEY, "OM-SN-441029", "REC-2026-0003", "Caisse Ferme", "Acompte Orange Money");
+        paymentTransactionRepository.save(t3);
+
+        // Facture 4 : Dr. Amadou Sow (Payée Espèces)
+        SaleInvoice inv4 = new SaleInvoice();
+        inv4.setInvoiceNumber("FAC-2026-0004");
+        inv4.setCustomer(c4);
+        inv4.setIssueDate(today);
+        inv4.setDueDate(today.plusDays(7));
+        inv4.setPaymentMethod(PaymentMethod.CASH);
+        inv4.setPaymentReference("CASH-DIRECT");
+        inv4.setNotes("Livraison directe à domicile.");
+
+        InvoiceItem item4_1 = new InvoiceItem(inv4, 5L, "Lait Frais Pasteurisé Bio (1L)", ProductType.PASTEURIZED_MILK, 10.0, "bouteilles 1L", 1000.0);
+        InvoiceItem item4_2 = new InvoiceItem(inv4, 1L, "Fromage Fermier Frais Bio (200g)", ProductType.CHEESE, 2.0, "pièces 200g", 2000.0);
+        inv4.addItem(item4_1);
+        inv4.addItem(item4_2);
+        inv4.setPaidAmountFcfa(14000.0);
+        inv4.recalculateTotals();
+        inv4.setStatus(InvoiceStatus.PAID);
+        saleInvoiceRepository.save(inv4);
+
+        PaymentTransaction t4 = new PaymentTransaction(inv4, c4, 14000.0, PaymentMethod.CASH, "CASH-DIRECT", "REC-2026-0004", "Livreur Ferme", "Règlement en espèces à la livraison");
+        paymentTransactionRepository.save(t4);
+
+        log.info("Initialisation commerciale terminée : 4 clients, 4 factures et transactions financières enregistrées !");
+    }
+
+    private void initFeedAndSolarData() {
+        if (feedStockRepository.count() > 0) {
+            return;
+        }
+        log.info("Initialisation des stocks d'aliments, des rations et de la télémétrie solaire pour le Sprint 5...");
+
+        // 1. Stocks d'Aliments & Fourrages
+        feedStockRepository.save(new FeedStock("Ensilage de Maïs Bio", "FORAGE_GREEN", 4200.0, 1000.0, 65.0, "Parcelles Bio Pout / Thiès", "Silo Couloir N°1", "Récolte Décembre. Très bonne valeur énergétique."));
+        feedStockRepository.save(new FeedStock("Foin de Niébé Riche en Protéines", "FORAGE_DRY", 1850.0, 500.0, 110.0, "GIE Femmes Niayes Bio", "Hangar Fourrages Secs", "Excellente source de MAT (16%)."));
+        feedStockRepository.save(new FeedStock("Tourteau d'Arachide Pressé à Froid", "CONCENTRATE", 850.0, 300.0, 240.0, "Huilerie Artisanale Kaolack", "Magasin Concentrés", "Concentré de protéines (45% MAT)."));
+        feedStockRepository.save(new FeedStock("Son de Blé Fin", "CONCENTRATE", 1200.0, 400.0, 140.0, "Grands Moulins de Dakar", "Magasin Concentrés", "Source d'énergie digestible et fibres."));
+        feedStockRepository.save(new FeedStock("Poudre de Moringa & CMV Bio", "MINERALS_VITAMINS", 120.0, 30.0, 1500.0, "Plantation Bio Thiès", "Pharmacie Vétérinaire", "Complément vitaminique & immunité."));
+        feedStockRepository.save(new FeedStock("Blocs à Lécher au Sel de Gandiol", "MINERALS_VITAMINS", 85.0, 20.0, 800.0, "Salins du Siné Saloum", "Magasin Concentrés", "Apport en sodium, phosphore et oligo-éléments."));
+
+        // 2. Rations Types Équilibrées
+        feedRationRepository.save(new FeedRation(
+                "Ration Haute Lactation (> 20 L/j)",
+                "Vaches Haute Lactation",
+                16.5,
+                "15 kg Ensilage Maïs + 4 kg Foin Niébé + 3.5 kg Tourteau Arachide + 2 kg Son de Blé + 150g CMV Bio",
+                2850.0,
+                14.2,
+                1450.0
+        ));
+
+        feedRationRepository.save(new FeedRation(
+                "Ration Moyenne Lactation (14 - 18 L/j)",
+                "Vaches en Lactation Standard",
+                14.0,
+                "12 kg Ensilage Maïs + 4 kg Foin Niébé + 2 kg Tourteau Arachide + 1.5 kg Son de Blé + 100g CMV Bio",
+                2150.0,
+                11.8,
+                1100.0
+        ));
+
+        feedRationRepository.save(new FeedRation(
+                "Ration Tarissement & Gestation Fin",
+                "Vaches Taries & Gestantes",
+                11.5,
+                "6 kg Ensilage Maïs + 5 kg Foin Niébé / Paille + 1 kg Son de Blé + Sel de Gandiol",
+                1350.0,
+                8.5,
+                720.0
+        ));
+
+        feedRationRepository.save(new FeedRation(
+                "Ration Croissance Génisses",
+                "Génisses de Renouvellement",
+                9.0,
+                "5 kg Ensilage Maïs + 3 kg Foin Niébé + 1 kg Tourteau Arachide + 50g CMV",
+                1200.0,
+                7.8,
+                680.0
+        ));
+
+        // 3. Télémétrie Solaire
+        if (solarEnergyMetricRepository.count() == 0) {
+            solarEnergyMetricRepository.save(new SolarEnergyMetric(
+                    38.4,
+                    94.0,
+                    215.0,
+                    68.4,
+                    "SOLAR_OPTIMAL",
+                    3.8,
+                    4.1,
+                    14.5,
+                    92.0,
+                    182.5
+            ));
+        }
+
+        log.info("Sprint 5 initialisé : Stocks d'aliments, Rations équilibrées et Télémétrie solaire enregistrés avec succès !");
+    }
 }
+
