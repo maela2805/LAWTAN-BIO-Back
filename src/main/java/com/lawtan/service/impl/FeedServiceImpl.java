@@ -48,14 +48,14 @@ public class FeedServiceImpl implements FeedService {
     @Override
     public FeedStockDTO createFeedStock(FeedStockDTO dto) {
         FeedStock stock = new FeedStock(
-                dto.getName(),
-                dto.getCategory(),
-                dto.getCurrentStockKg(),
-                dto.getAlertThresholdKg(),
-                dto.getUnitPricePerKgFcfa(),
-                dto.getSupplierName(),
-                dto.getStorageLocation(),
-                dto.getNotes()
+                dto.getName() != null ? dto.getName() : "Aliment",
+                dto.getCategory() != null ? dto.getCategory() : "CONCENTRATE",
+                dto.getCurrentStockKg() != null ? dto.getCurrentStockKg() : 0.0,
+                dto.getAlertThresholdKg() != null ? dto.getAlertThresholdKg() : 50.0,
+                dto.getUnitPricePerKgFcfa() != null ? dto.getUnitPricePerKgFcfa() : 0.0,
+                dto.getSupplierName() != null ? dto.getSupplierName() : "Ferme Lawtan",
+                dto.getStorageLocation() != null ? dto.getStorageLocation() : "Magasin",
+                dto.getNotes() != null ? dto.getNotes() : ""
         );
         FeedStock saved = feedStockRepository.save(stock);
         return convertStockToDTO(saved);
@@ -81,13 +81,13 @@ public class FeedServiceImpl implements FeedService {
     @Override
     public FeedRationDTO createRation(FeedRationDTO dto) {
         FeedRation ration = new FeedRation(
-                dto.getRationName(),
-                dto.getTargetCategory(),
-                dto.getDailyDryMatterKg(),
-                dto.getCompositionDescription(),
-                dto.getDailyCostFcfa(),
-                dto.getEnergyUfl(),
-                dto.getProteinPdiGrams()
+                dto.getRationName() != null ? dto.getRationName() : "Ration Personnalisée",
+                dto.getTargetCategory() != null ? dto.getTargetCategory() : "Vaches Haute Lactation",
+                dto.getDailyDryMatterKg() != null ? dto.getDailyDryMatterKg() : 15.0,
+                dto.getCompositionDescription() != null ? dto.getCompositionDescription() : "Composition standard",
+                dto.getDailyCostFcfa() != null ? dto.getDailyCostFcfa() : 2000.0,
+                dto.getEnergyUfl() != null ? dto.getEnergyUfl() : 12.0,
+                dto.getProteinPdiGrams() != null ? dto.getProteinPdiGrams() : 1000.0
         );
         FeedRation saved = feedRationRepository.save(ration);
         return convertRationToDTO(saved);

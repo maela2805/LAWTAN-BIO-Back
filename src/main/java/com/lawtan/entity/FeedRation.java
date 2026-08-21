@@ -15,10 +15,9 @@ public class FeedRation {
 
     private String targetCategory; // Vaches Haute Lactation, Début/Milieu Lactation, Vaches Taries, Génisses
 
-    @Column(nullable = false)
     private Double dailyDryMatterKg;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String compositionDescription;
 
     private Double dailyCostFcfa;
