@@ -19,6 +19,9 @@ public interface TransformationBatchRepository extends JpaRepository<Transformat
     @Query("SELECT COALESCE(SUM(b.milkLitersConsumed), 0.0) FROM TransformationBatch b WHERE b.productionDate = :date AND (b.status = com.lawtan.model.BatchStatus.IN_PROGRESS OR b.status = com.lawtan.model.BatchStatus.COMPLETED)")
     Double sumMilkConsumedByDate(LocalDate date);
 
+    @Query("SELECT COALESCE(SUM(b.milkLitersConsumed), 0.0) FROM TransformationBatch b WHERE b.status = com.lawtan.model.BatchStatus.IN_PROGRESS OR b.status = com.lawtan.model.BatchStatus.COMPLETED")
+    Double sumTotalMilkConsumed();
+
     @Query("SELECT SUM(b.milkLitersConsumed) FROM TransformationBatch b WHERE b.status = com.lawtan.model.BatchStatus.COMPLETED")
     Double sumTotalMilkTransformed();
 

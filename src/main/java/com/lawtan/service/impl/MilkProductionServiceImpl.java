@@ -94,7 +94,7 @@ public class MilkProductionServiceImpl implements MilkProductionService {
                 .sum();
 
         double grossTotalVol = morningVol + eveningVol;
-        Double consumedToday = transformationBatchRepository.sumMilkConsumedByDate(today);
+        Double consumedToday = transformationBatchRepository.sumTotalMilkConsumed();
         if (consumedToday == null) consumedToday = 0.0;
 
         double netAvailableVol = Math.max(0.0, grossTotalVol - consumedToday);
