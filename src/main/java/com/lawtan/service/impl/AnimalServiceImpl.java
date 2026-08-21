@@ -58,18 +58,44 @@ public class AnimalServiceImpl implements AnimalService {
     @Override
     @Transactional
     public AnimalDTO createAnimal(AnimalDTO dto) {
+        long count = animalRepository.count() + 1;
+        String intId = dto.getInternalId();
+        if (intId == null || intId.trim().isEmpty()) {
+            intId = String.format("FL-%03d", count);
+        }
+
+        String earTag = dto.getEarTagNumber();
+        if (earTag == null || earTag.trim().isEmpty()) {
+            earTag = String.format("SN-DK-%04d", 1400 + count);
+        }
+
+        // If duplicate ID exists, generate safe unique suffix
+        if (animalRepository.findByInternalId(intId).isPresent()) {
+            intId = intId + "-" + (System.currentTimeMillis() % 10000);
+        }
+
+        String name = dto.getName();
+        if (name == null || name.trim().isEmpty()) {
+            name = "Animal " + intId;
+        }
+
+        String breed = dto.getBreed();
+        if (breed == null || breed.trim().isEmpty()) {
+            breed = "Holstein Pure";
+        }
+
         Animal animal = Animal.builder()
-                .internalId(dto.getInternalId())
-                .name(dto.getName())
-                .earTagNumber(dto.getEarTagNumber())
+                .internalId(intId)
+                .name(name)
+                .earTagNumber(earTag)
                 .rfidCode(dto.getRfidCode())
-                .breed(dto.getBreed())
-                .birthDate(dto.getBirthDate())
+                .breed(breed)
+                .birthDate(dto.getBirthDate() != null ? dto.getBirthDate() : java.time.LocalDate.now())
                 .gender(dto.getGender() != null ? dto.getGender() : "FEMALE")
                 .category(dto.getCategory() != null ? dto.getCategory() : AnimalCategory.MILKING_COW)
                 .status(dto.getStatus() != null ? dto.getStatus() : AnimalStatus.HEALTHY)
-                .weight(dto.getWeight())
-                .temperature(dto.getTemperature())
+                .weight(dto.getWeight() != null ? dto.getWeight() : 450.0)
+                .temperature(dto.getTemperature() != null ? dto.getTemperature() : 38.5)
                 .dailyMilkYield(dto.getDailyMilkYield() != null ? dto.getDailyMilkYield() : 0.0)
                 .lactationNumber(dto.getLactationNumber())
                 .daysInMilk(dto.getDaysInMilk())
