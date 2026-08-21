@@ -38,9 +38,11 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         try {
             jdbcTemplate.execute("ALTER TABLE animals ALTER COLUMN image_url TYPE TEXT");
-            log.info("Colonne image_url convertie en type TEXT avec succès.");
+            jdbcTemplate.execute("ALTER TABLE animals ALTER COLUMN ear_tag_number DROP NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE animals DROP CONSTRAINT IF EXISTS animals_ear_tag_number_key");
+            log.info("Colonnes image_url et ear_tag_number adaptées avec succès.");
         } catch (Exception e) {
-            log.debug("Vérification colonne image_url: " + e.getMessage());
+            log.debug("Vérification colonne image_url/ear_tag_number: " + e.getMessage());
         }
 
         if (animalRepository.count() == 0) {

@@ -79,10 +79,15 @@ public class AnimalServiceImpl implements AnimalService {
             breed = "Holstein Pure";
         }
 
+        String earTag = dto.getEarTagNumber();
+        if (earTag == null || earTag.trim().isEmpty()) {
+            earTag = String.format("SN-%s-%04d", intId, System.currentTimeMillis() % 10000);
+        }
+
         Animal animal = Animal.builder()
                 .internalId(intId)
                 .name(name)
-                .earTagNumber(dto.getEarTagNumber())
+                .earTagNumber(earTag)
                 .rfidCode(dto.getRfidCode())
                 .breed(breed)
                 .birthDate(dto.getBirthDate() != null ? dto.getBirthDate() : java.time.LocalDate.now())
