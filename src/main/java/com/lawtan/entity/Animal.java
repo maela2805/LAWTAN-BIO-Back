@@ -28,11 +28,11 @@ public class Animal {
     @Column(nullable = false, length = 100)
     private String name; // e.g. NDIRA
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String earTagNumber; // e.g. SN-DK-1423
+    @Column(length = 50)
+    private String earTagNumber; // Optionnel
 
     @Column(length = 50)
-    private String rfidCode; // e.g. RFID-9820-001
+    private String rfidCode; // Optionnel
 
     @Column(nullable = false, length = 100)
     private String breed; // e.g. Holstein Pure

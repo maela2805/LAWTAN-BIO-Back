@@ -64,11 +64,6 @@ public class AnimalServiceImpl implements AnimalService {
             intId = String.format("FL-%03d", count);
         }
 
-        String earTag = dto.getEarTagNumber();
-        if (earTag == null || earTag.trim().isEmpty()) {
-            earTag = String.format("SN-DK-%04d", 1400 + count);
-        }
-
         // If duplicate ID exists, generate safe unique suffix
         if (animalRepository.findByInternalId(intId).isPresent()) {
             intId = intId + "-" + (System.currentTimeMillis() % 10000);
@@ -87,7 +82,7 @@ public class AnimalServiceImpl implements AnimalService {
         Animal animal = Animal.builder()
                 .internalId(intId)
                 .name(name)
-                .earTagNumber(earTag)
+                .earTagNumber(dto.getEarTagNumber())
                 .rfidCode(dto.getRfidCode())
                 .breed(breed)
                 .birthDate(dto.getBirthDate() != null ? dto.getBirthDate() : java.time.LocalDate.now())
