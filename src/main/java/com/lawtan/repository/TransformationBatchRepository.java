@@ -15,10 +15,13 @@ public interface TransformationBatchRepository extends JpaRepository<Transformat
     List<TransformationBatch> findByStatus(BatchStatus status);
     List<TransformationBatch> findAllByOrderByProductionDateDesc();
 
-    @Query("SELECT SUM(b.milkLitersConsumed) FROM TransformationBatch b WHERE b.status = 'COMPLETED'")
+    @Query("SELECT COALESCE(SUM(b.milkLitersConsumed), 0.0) FROM TransformationBatch b WHERE b.productionDate = :date AND (b.status = com.lawtan.model.BatchStatus.IN_PROGRESS OR b.status = com.lawtan.model.BatchStatus.COMPLETED)")
+    Double sumMilkConsumedByDate(LocalDate date);
+
+    @Query("SELECT SUM(b.milkLitersConsumed) FROM TransformationBatch b WHERE b.status = com.lawtan.model.BatchStatus.COMPLETED")
     Double sumTotalMilkTransformed();
 
-    @Query("SELECT AVG(b.yieldEfficiencyPercentage) FROM TransformationBatch b WHERE b.status = 'COMPLETED' AND b.yieldEfficiencyPercentage IS NOT NULL")
+    @Query("SELECT AVG(b.yieldEfficiencyPercentage) FROM TransformationBatch b WHERE b.status = com.lawtan.model.BatchStatus.COMPLETED AND b.yieldEfficiencyPercentage IS NOT NULL")
     Double avgYieldEfficiency();
 
     Long countByStatus(BatchStatus status);

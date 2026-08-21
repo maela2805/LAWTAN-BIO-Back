@@ -25,6 +25,7 @@ public class MilkProductionServiceImpl implements MilkProductionService {
 
     private final MilkProductionRepository milkProductionRepository;
     private final AnimalRepository animalRepository;
+    private final com.lawtan.repository.TransformationBatchRepository transformationBatchRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -92,18 +93,24 @@ public class MilkProductionServiceImpl implements MilkProductionService {
                 .mapToDouble(MilkProduction::getVolumeLiters)
                 .sum();
 
-        double totalVol = morningVol + eveningVol;
+        double grossTotalVol = morningVol + eveningVol;
+        Double consumedToday = transformationBatchRepository.sumMilkConsumedByDate(today);
+        if (consumedToday == null) consumedToday = 0.0;
+
+        double netAvailableVol = Math.max(0.0, grossTotalVol - consumedToday);
         double maxCap = 500.0; // Cuve Principale 500L
-        double fillPercent = Math.min(100.0, (totalVol / maxCap) * 100.0);
+        double fillPercent = Math.min(100.0, (netAvailableVol / maxCap) * 100.0);
 
         return TankStatusDTO.builder()
                 .tankName("Cuve Réfrigérée N°1 (Bio)")
-                .currentVolume(Math.round(totalVol * 10.0) / 10.0)
+                .currentVolume(Math.round(netAvailableVol * 10.0) / 10.0)
+                .grossVolumeCollected(Math.round(grossTotalVol * 10.0) / 10.0)
+                .transformedVolume(Math.round(consumedToday * 10.0) / 10.0)
                 .maxCapacity(maxCap)
                 .fillPercentage(Math.round(fillPercent * 10.0) / 10.0)
                 .temperature(3.9) // T° de consigne optimale
                 .phLevel(6.68)   // pH frais optimal
-                .qualityStatus(totalVol > 0 ? "CONFORME BIO & PASTEURISATION" : "EN ATTENTE COLLECTE")
+                .qualityStatus(netAvailableVol > 0 ? "CONFORME BIO & PASTEURISATION" : "EN ATTENTE COLLECTE")
                 .targetBatch("LOT-TR-" + today.toString().replace("-", "") + "-01")
                 .morningVolume(Math.round(morningVol * 10.0) / 10.0)
                 .eveningVolume(Math.round(eveningVol * 10.0) / 10.0)
